@@ -2,7 +2,9 @@
 
 自用的 Quantumult X 脚本集。
 
-## node-feel.js — 节点体感测试（现行）
+## node-feel-v2.js — 节点体感测试（现行）
+
+v2 起改为依次逐个打开各站：并行打开会互相抢代理链路的带宽与并发，数字比真实体感虚高。
 
 在 QX 首页长按任意节点/策略组即可运行，面板显示：
 
@@ -16,7 +18,7 @@
 把下面一行粘进 QX 配置的 `[task_local]` 段：
 
 ```
-event-interaction https://raw.githubusercontent.com/bzdemo/qx-scripts/main/node-feel.js, tag=节点体感测试, img-url=play.rectangle.system, enabled=true
+event-interaction https://raw.githubusercontent.com/bzdemo/qx-scripts/main/node-feel-v2.js, tag=节点体感测试, img-url=play.rectangle.system, enabled=true
 ```
 
 ### 能测什么、不能测什么
