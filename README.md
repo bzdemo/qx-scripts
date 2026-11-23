@@ -2,23 +2,23 @@
 
 自用的 Quantumult X 脚本集。
 
-## node-feel-v3.js — 节点体感测试（现行）
+## node-feel-v4.js — 节点体感测试（现行）
 
-依次逐个打开各站：并行打开会互相抢代理链路的带宽与并发，数字比真实体感虚高。v3 起分国外/国内两组对比。
+依次逐个打开各站：并行打开会互相抢代理链路的带宽与并发，数字比真实体感虚高。v3 起分国外/国内两组对比；v4 起国内组改为手机直连实测，不再经节点。
 
 在 QX 首页长按任意节点/策略组即可运行，面板显示：
 
 - 出口 IP / ISP / ASN / 归属地（数据来源 api.ip.sb）
-- 经当前节点依次打开国外三家（Google / YouTube / Netflix）与国内三家（百度 / 哔哩哔哩 / 腾讯QQ），显示两组各自的平均打开耗时与各站明细
+- 国外三家（Google / YouTube / Netflix）经所选节点打开，国内三家（百度 / 哔哩哔哩 / 腾讯QQ）走手机直连，显示两组各自的平均打开耗时与各站明细
 
-思路：国外组是节点的本职，国内组经节点绕回国必然慢；两组平均一对比，节点的真实体感和分流直连的价值都看得见。
+思路：这正是日常使用的真实分工——国外走节点、国内走直连，两组平均一对比，节点体感和直连体感都看得见。
 
 ### 添加方法
 
 把下面一行粘进 QX 配置的 `[task_local]` 段：
 
 ```
-event-interaction https://raw.githubusercontent.com/bzdemo/qx-scripts/main/node-feel-v3.js, tag=节点体感测试, img-url=play.rectangle.system, enabled=true
+event-interaction https://raw.githubusercontent.com/bzdemo/qx-scripts/main/node-feel-v4.js, tag=节点体感测试, img-url=play.rectangle.system, enabled=true
 ```
 
 ### 能测什么、不能测什么
