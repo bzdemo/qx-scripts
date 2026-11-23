@@ -1,14 +1,16 @@
 /***
- * 三网全链路测试（Quantumult X 交互脚本）
+ * 三网全链路测试（Quantumult X 交互脚本）v2 · 体感版
  *
  * 用法：在 QX 首页长按任意节点/策略组，选择「三网全链路测试」。
- * 脚本会经所选节点（$environment.params）发出请求，面板显示：
+ * 脚本会经所选节点（$environment.params）发出真实请求，面板显示：
  *   - 出口 IP / ISP / ASN / 归属地（数据来源 api.ip.sb）
- *   - 电信 / 联通 / 移动三家官网的全链路延迟（每家 3 次取最优）与连通次数
+ *   - 电信 / 联通 / 移动三家官网的完整打开耗时（真实 GET，跟随跳转，
+ *     含握手、服务器响应与页面传输；每家测 2 次取最优）
+ *   - 经当前节点的真实下载速度（下载 2 MB 测速文件实测，Cloudflare 测速源）
  *
- * 说明：QX 脚本沙箱只有 HTTP 能力、没有 traceroute/ICMP，
- * 因此这里测的是「经当前节点的全链路 HTTP 延迟」，不是线路（CN2 GIA/9929 等）判定。
- * 本脚本不含任何凭据与私有信息，测速点均为运营商公开官网。
+ * 说明：测的是贴近日常使用的全链路体感，不是 ping 值，也不是线路
+ * （CN2 GIA/9929 等）判定——QX 脚本沙箱只有 HTTP 能力，没有 traceroute/ICMP。
+ * 本脚本不含任何凭据与私有信息，测速点均为公开服务。
  *
  * [task_local]
  * event-interaction https://raw.githubusercontent.com/bzdemo/qx-scripts/main/three-net-check.js, tag=三网全链路测试, img-url=antenna.radiowaves.left.and.right.system, enabled=true
@@ -26,6 +28,9 @@ var CARRIERS = [
   { name: "移动", color: "#9A8AA6", url: "https://www.10086.cn/" }
 ];
 
+var DL_BYTES = 2000000;
+var DL_URL = "https://speed.cloudflare.com/__down?bytes=" + DL_BYTES;
+
 function fetchWithTimeout(req, ms) {
   return Promise.race([
     $task.fetch(req),
@@ -35,26 +40,26 @@ function fetchWithTimeout(req, ms) {
   ]);
 }
 
-function probeOnce(url) {
+function loadOnce(url) {
   var start = Date.now();
   return fetchWithTimeout({
     url: url,
-    method: "HEAD",
+    method: "GET",
     opts: opts,
-    timeout: 5000,
+    timeout: 8000,
     headers: { "User-Agent": UA }
-  }, 5000).then(function () {
+  }, 8000).then(function () {
     return Date.now() - start;
   }, function () {
     return -1;
   });
 }
 
-async function probeCarrier(carrier) {
+async function loadCarrier(carrier) {
   var best = -1;
   var ok = 0;
-  for (var i = 0; i < 3; i++) {
-    var t = await probeOnce(carrier.url);
+  for (var i = 0; i < 2; i++) {
+    var t = await loadOnce(carrier.url);
     if (t >= 0) {
       ok++;
       if (best < 0 || t < best) best = t;
@@ -80,6 +85,22 @@ function getExitInfo() {
   });
 }
 
+function downloadTest() {
+  var start = Date.now();
+  return fetchWithTimeout({
+    url: DL_URL,
+    opts: opts,
+    timeout: 20000,
+    headers: { "User-Agent": UA }
+  }, 20000).then(function () {
+    var secs = (Date.now() - start) / 1000;
+    if (secs <= 0) return -1;
+    return (DL_BYTES * 8) / secs / 1000000;
+  }, function () {
+    return -1;
+  });
+}
+
 function flagEmoji(cc) {
   if (!cc || cc.length !== 2) return "";
   var base = 127397;
@@ -90,10 +111,11 @@ function flagEmoji(cc) {
 ;(async () => {
   var results = await Promise.all([
     getExitInfo(),
-    probeCarrier(CARRIERS[0]),
-    probeCarrier(CARRIERS[1]),
-    probeCarrier(CARRIERS[2])
+    loadCarrier(CARRIERS[0]),
+    loadCarrier(CARRIERS[1]),
+    loadCarrier(CARRIERS[2])
   ]);
+  var mbps = await downloadTest();
 
   var info = results[0];
   var lines = [];
@@ -115,13 +137,16 @@ function flagEmoji(cc) {
 
   for (var i = 1; i < results.length; i++) {
     var r = results[i];
-    var val = r.best >= 0 ? ("<b>" + r.best + " ms</b>（" + r.ok + "/3）") : "超时（0/3）";
+    var val = r.best >= 0 ? ("<b>" + r.best + " ms</b>（" + r.ok + "/2）") : "超时（0/2）";
     lines.push("<font color=" + r.color + "><b>" + r.name + "</b></font> : " + val);
   }
 
+  var dl = mbps >= 0 ? ("<b>" + mbps.toFixed(1) + " Mbps</b>") : "失败";
+  lines.push("<b>下载</b> : " + dl + "（2MB 实测）");
+
   lines.push("------------------------------");
   lines.push("<font color=#CD5C5C><b>节点</b> ➟ " + $environment.params + "</font>");
-  lines.push("<font color=#949EA0>全链路延迟：经当前节点至运营商官网</font>");
+  lines.push("<font color=#949EA0>体感实测：三网为官网完整打开耗时</font>");
 
   var content = "<p style=\"text-align: center; font-family: -apple-system; font-size: large; font-weight: thin\">" + lines.join("</br>") + "</p>";
 
